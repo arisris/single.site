@@ -1,0 +1,6 @@
+{
+  "tasks": {
+    "blog:dev": "deno run -A --watch=blog/.env,blog/server.tsx blog/server.tsx"
+  },
+  "importMap": "./import_map.json"
+}

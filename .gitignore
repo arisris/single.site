@@ -1,0 +1,6 @@
+## folder
+.vscode/bak/
+
+## files
+.env
+deno.lock
