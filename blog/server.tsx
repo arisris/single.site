@@ -20,6 +20,7 @@ import {
 } from "https://deno.land/x/hono@v2.7.2/utils/http-status.ts";
 import { type CookieOptions } from "https://deno.land/x/hono@v2.7.2/utils/cookie.ts";
 import { Jwt } from "https://deno.land/x/hono@v2.7.2/utils/jwt/index.ts";
+import * as bcrypt from "https://deno.land/x/bcrypt@v0.4.1/mod.ts";
 
 import {
   cache as cacheMiddleware,
@@ -56,313 +57,342 @@ const CONF = await getValidConfiguration(), /* Valid configuration OR Throw */
   POOL = new PGPool(CONF.db.options, CONF.db.pool_size, true),
   SOCKETS = new Set<WebSocket>();
 
-const ROUTER = createHonoApp().get("/", async (c) => {
-  // const db = await c.db.queryObject`select gen_random_uuid()`;
-  // console.log(db.rows);
-  return c.html(
-    <CLayout title="Simple deno blog platform">
-      <h3>Hi. User</h3>
-      <div class="inline-flex gap-2">
-        <a href="/dashboard">Dashboard</a>
-        <a href="/settings">Settings</a>
-        <a href="/signout">Signout</a>
-      </div>
-      <p class="my-6">
-        Welcome to `kodok`. Create accounts then you can enjoy by write &amp;
-        publish your stories arround the world for free
-      </p>
-      <h3>Features:</h3>
-      <ul class="list-disc px-6 children:py-1">
-        <li>No ads</li>
-        <li>Super fast</li>
-        <li>Runing on edge server</li>
-        <li>Globally distributed content</li>
-        <li>Custom domain</li>
-      </ul>
-      <h3>Get started:</h3>
-      <div class="inline-flex gap-2">
-        <a href="/signin">Login</a>
-        <a href="/signup">Register</a>
-        <a href="/explore">Explore..</a>
-      </div>
-      <h3>Simple Counter</h3>
-      <div x-data={`{counter: 0}`}>
-        <div class="text-xl" x-text="counter">0</div>
-        <button x-on:click="counter++">Increment</button>
-      </div>
-    </CLayout>,
-  );
-}).get("/signout", (ctx) => {
-  return ctx.redirect("/signin");
-}).get("/signin/:provider", (ctx) => {
-  return ctx.redirect("/signin");
-}).post(
-  "/signin",
-  async (c) => {
-    const v = await z.object({
-      email: z.string().email(),
-      password: z.string().min(1),
-    }).spa(await c.req.parseBody());
+const ROUTER = new Hono()
+  .use(
+    "*",
+    sessionMiddleware(),
+  ) /*.get("/", (c, next) => {
+  c.session.hello = "World Man";
+  c.session.flash("hello", "Flash Hello World");
+  return next();
+}).get("/", (c, next) => {
+  console.log(c.session.flash("hello"));
 
-    return c.redirect(c.req.url);
-  },
-).get("/signin", (ctx) => {
-  const title = "SignIn";
-  return ctx.html(
-    <CLayout title={title}>
-      <h3>{title}</h3>
-      <form
-        method="POST"
-        class="max-w-[360px]"
-      >
-        <div class="mb-2">
-          <label for="email">Email:</label>
-          <input
-            type="email"
-            name="email"
-            id="email"
-            placeholder="Your email"
-            autocomplete="current-email"
-            required
+  return next();
+}).get("/", (c, next) => {
+  console.log(c.session.flash("hello"));
+  console.log(c.session.hello);
+  return next();
+})*/
+  .get(
+    "/_hmr",
+    async (ctx, next) => {
+      // dont do in production
+      if (CONF.mode === "production") return next();
+      if (ctx.req.headers.get("upgrade") == "websocket") {
+        const { response, socket } = Deno.upgradeWebSocket(ctx.req);
+        SOCKETS.add(socket);
+        socket.onclose = () => {
+          SOCKETS.delete(socket);
+        };
+        return response;
+      } else {
+        return ctx.newResponse(
+          `let socket,reconnectTimer;const wsOrigin=window.location.origin.replace("http","ws").replace("https","wss"),socketUrl=wsOrigin+"/_hmr";hmrSocket();function hmrSocket(callback){if(socket){socket.close();}socket=new WebSocket(socketUrl);socket.addEventListener("open",()=>{console.log("HMR Connected");},{once: true});socket.addEventListener("open",callback);socket.addEventListener("message",(event)=>{if(event.data==="refresh"){console.log("refreshings");window.location.reload();}});socket.addEventListener("close",()=>{console.log("reconnecting...");clearTimeout(reconnectTimer);reconnectTimer=setTimeout(()=>{hmrSocket(()=>{window.location.reload();});},1000);});}`,
+          200,
+          {
+            "content-type": "application/javascript; charset=utf-8;",
+            "cache-control": "private, max-age=0, must-revalidate",
+          },
+        );
+      }
+    },
+  ).get(
+    "/",
+    async (c) => {
+      return c.html(
+        <CLayout title="Simple deno blog platform">
+          <h3>Hi. User</h3>
+          <div class="inline-flex gap-2">
+            <a href="/dashboard">Dashboard</a>
+            <a href="/settings">Settings</a>
+            <a href="/signout">Signout</a>
+          </div>
+          <p class="my-6">
+            Welcome to `kodok`. Create accounts then you can enjoy by write
+            &amp; publish your stories arround the world for free
+          </p>
+          <h3>Features:</h3>
+          <ul class="list-disc px-6 children:py-1">
+            <li>No ads</li>
+            <li>Super fast</li>
+            <li>Runing on edge server</li>
+            <li>Globally distributed content</li>
+            <li>Custom domain</li>
+          </ul>
+          <h3>Get started:</h3>
+          <div class="inline-flex gap-2">
+            <a href="/signin">Login</a>
+            <a href="/signup">Register</a>
+            <a href="/explore">Explore..</a>
+          </div>
+          <h3>Simple Counter</h3>
+          <div x-data={`{counter: 0}`}>
+            <div class="text-xl" x-text="counter">0</div>
+            <button x-on:click="counter++">Increment</button>
+          </div>
+        </CLayout>,
+      );
+    },
+  ).get("/signout", (ctx) => {
+    return ctx.redirect("/signin");
+  }).get("/signin/:provider", (ctx) => {
+    return ctx.redirect("/signin");
+  }).post(
+    "/signin",
+    async (c) => {
+      return c.redirect(c.req.url);
+    },
+  ).get("/signin", (c) => {
+    const error = false;
+    const title = "SignIn";
+    return c.html(
+      <CLayout title={title}>
+        <h3>{title}</h3>
+        <form
+          method="POST"
+          class="max-w-[360px]"
+        >
+          {error && <CNotif class="my-2" boxed message={error} type="danger" />}
+          <div class="mb-2">
+            <label for="email">Email:</label>
+            <input
+              type="email"
+              name="email"
+              id="email"
+              placeholder="Your email"
+              autocomplete="current-email"
+              required
+            />
+          </div>
+          <div class="mb-2">
+            <label for="password">Password:</label>
+            <input
+              type="password"
+              name="password"
+              id="password"
+              placeholder="Your password"
+              autocomplete="current-password"
+              required
+            />
+          </div>
+          <label for="remember" class="mb-2">
+            <input
+              type="checkbox"
+              name="remember"
+              id="remember"
+              class="ml-0"
+            />
+            <span class="text-sm">Remember me</span>
+          </label>
+          <div class="my-2">
+            <button type="submit">
+              SignIn
+            </button>
+            <br />
+            <br />
+            <a href="/signup" class="text-sm">SignUp</a> |{" "}
+            <a href="/reset-password" class="text-sm">Reset Password</a>
+          </div>
+        </form>
+      </CLayout>,
+    );
+  }).get("/signup", (ctx) => {
+    const title = "SignUp";
+    return ctx.html(
+      <CLayout title={title}>
+        <form method="POST" class="max-w-[360px]">
+          <div class="mb-2">
+            <label for="email">Email:</label>
+            <input
+              type="email"
+              name="email"
+              id="email"
+              placeholder="Your email"
+              autocomplete="new-email"
+              required
+            />
+          </div>
+          <CNotif
+            boxed
+            class="my-2 px-2 py-1"
+            type="warning"
+            message="Password is required with combined with special character eg. $^*#@!~"
           />
-        </div>
-        <div class="mb-2">
-          <label for="password">Password:</label>
-          <input
-            type="password"
-            name="password"
-            id="password"
-            placeholder="Your password"
-            autocomplete="current-password"
-            required
+          <div class="mb-2">
+            <label for="password">Password:</label>
+            <input
+              type="password"
+              name="password"
+              id="password"
+              placeholder="Your password"
+              autocomplete="new-password"
+              required
+            />
+          </div>
+          <div class="mb-2">
+            <label for="password_confirm">Confirm:</label>
+            <input
+              type="password"
+              name="password_confirm"
+              id="password_confirm"
+              placeholder="Confirm your password"
+              autocomplete="new-password"
+              required
+            />
+          </div>
+          <div class="my-4">
+            <label for="blog_name">Domains</label>
+            <br />
+            <i class="text-xs text-gray-500">
+              Find your web identity availablility. We have free subdomain or
+              you can chose top-level domain
+            </i>
+            <hr />
+            <input type="text" name="blog_name" id="blog_name" required />
+            <select name="blog_subid" required>
+              <option value="0" selected="true">.kodok.site</option>
+            </select>
+          </div>
+          <label for="accept" class="mb-2">
+            <input type="checkbox" name="accept" id="accept" class="ml-0" />
+            <span class="text-sm">
+              By continue we thing you have read our{" "}
+              <a href="/privacy-policy" class="italic">
+                Privacy Policy
+              </a>{" "}
+              &{" "}
+              <a href="/terms-of-service" class="italic">
+                Terms of Service
+              </a>
+            </span>
+          </label>
+          <div class="my-2">
+            <button type="submit">SignUp</button>
+            <br />
+            <br />
+            <a href="/signin" class="text-sm">SignIn</a>
+          </div>
+        </form>
+      </CLayout>,
+    );
+  }).get("/reset-password", (ctx) => {
+    const title = "Reset Password";
+    return ctx.html(
+      <CLayout title={title}>
+        <form method="POST" class="max-w-[360px]">
+          <CNotif
+            class="mb-6"
+            message="We can reset your password by send token to your email. Please follow instruction"
+            type="info"
+            boxed
           />
-        </div>
-        <label for="remember" class="mb-2">
-          <input
-            type="checkbox"
-            name="remember"
-            id="remember"
-            class="ml-0"
-          />
-          <span class="text-sm">Remember me</span>
-        </label>
-        <div class="my-2">
-          <button type="submit">
-            SignIn
-          </button>
+          <div class="mb-2">
+            <label for="email">Email:</label>
+            <input
+              type="email"
+              name="email"
+              id="email"
+              placeholder="Your email"
+              autocomplete="new-email"
+              required
+            />
+          </div>
+          <div class="my-2">
+            <button type="submit">Reset Password</button>
+            <br />
+            <br />
+            <a href="/signin" class="text-sm">SignIn</a>
+          </div>
+        </form>
+      </CLayout>,
+    );
+  }).get("/explore", (ctx) => {
+    const title = "Explore";
+    return ctx.html(
+      <CLayout title={title}>
+      </CLayout>,
+    );
+  }).get("/dashboard", (ctx) => {
+    const title = "Dashboard";
+    return ctx.html(
+      <CLayout title={title}>
+      </CLayout>,
+    );
+  }).get("/docs", (ctx) => {
+    const title = "Documentation";
+    return ctx.html(
+      <CLayout title={title}>
+      </CLayout>,
+    );
+  }).get("/privacy-policy", (ctx) => {
+    const title = "Privacy Policy";
+    return ctx.html(
+      <CLayout title={title}>
+      </CLayout>,
+    );
+  }).get("/terms-of-service", (ctx) => {
+    const title = "Terms of Service";
+    return ctx.html(
+      <CLayout title={title}>
+      </CLayout>,
+    );
+  }).get("/tools", (ctx) => {
+    const title = "Tools";
+    return ctx.html(
+      <CLayout title={title}>
+      </CLayout>,
+    );
+  }).get("/tools/bcrypt-generator", (ctx) => {
+    const title = "Bcrypt Generator Tools";
+    return ctx.html(
+      <CLayout title={title}>
+        <div x-data={`({"input": "hello worlds"})`}>
+          <label for="input" x-text="input">Input</label>
           <br />
-          <br />
-          <a href="/signup" class="text-sm">SignUp</a> |{" "}
-          <a href="/reset-password" class="text-sm">Reset Password</a>
+          <input type="text" name="input" id="input" x-model="input" />
         </div>
-      </form>
-    </CLayout>,
-  );
-}).get("/signup", (ctx) => {
-  const title = "SignUp";
-  return ctx.html(
-    <CLayout title={title}>
-      <form method="POST" class="max-w-[360px]">
-        <div class="mb-2">
-          <label for="email">Email:</label>
-          <input
-            type="email"
-            name="email"
-            id="email"
-            placeholder="Your email"
-            autocomplete="new-email"
-            required
-          />
-        </div>
-        <CNotif
-          boxed
-          class="my-2 px-2 py-1"
-          type="warning"
-          message="Password is required with combined with special character eg. $^*#@!~"
-        />
-        <div class="mb-2">
-          <label for="password">Password:</label>
-          <input
-            type="password"
-            name="password"
-            id="password"
-            placeholder="Your password"
-            autocomplete="new-password"
-            required
-          />
-        </div>
-        <div class="mb-2">
-          <label for="password_confirm">Confirm:</label>
-          <input
-            type="password"
-            name="password_confirm"
-            id="password_confirm"
-            placeholder="Confirm your password"
-            autocomplete="new-password"
-            required
-          />
-        </div>
-        <div class="my-4">
-          <label for="blog_name">Domains</label>
-          <br />
-          <i class="text-xs text-gray-500">
-            Find your web identity availablility. We have free subdomain or you
-            can chose top-level domain
-          </i>
-          <hr />
-          <input type="text" name="blog_name" id="blog_name" required />
-          <select name="blog_subid" required>
-            <option value="0" selected="true">.kodok.site</option>
-          </select>
-        </div>
-        <label for="accept" class="mb-2">
-          <input type="checkbox" name="accept" id="accept" class="ml-0" />
-          <span class="text-sm">
-            By continue we thing you have read our{" "}
-            <a href="/privacy-policy" class="italic">
-              Privacy Policy
-            </a>{" "}
-            &{" "}
-            <a href="/terms-of-service" class="italic">
-              Terms of Service
-            </a>
-          </span>
-        </label>
-        <div class="my-2">
-          <button type="submit">SignUp</button>
-          <br />
-          <br />
-          <a href="/signin" class="text-sm">SignIn</a>
-        </div>
-      </form>
-    </CLayout>,
-  );
-}).get("/reset-password", (ctx) => {
-  const title = "Reset Password";
-  return ctx.html(
-    <CLayout title={title}>
-      <form method="POST" class="max-w-[360px]">
-        <CNotif
-          class="mb-6"
-          message="We can reset your password by send token to your email. Please follow instruction"
-          type="info"
-          boxed
-        />
-        <div class="mb-2">
-          <label for="email">Email:</label>
-          <input
-            type="email"
-            name="email"
-            id="email"
-            placeholder="Your email"
-            autocomplete="new-email"
-            required
-          />
-        </div>
-        <div class="my-2">
-          <button type="submit">Reset Password</button>
-          <br />
-          <br />
-          <a href="/signin" class="text-sm">SignIn</a>
-        </div>
-      </form>
-    </CLayout>,
-  );
-}).get("/explore", (ctx) => {
-  const title = "Explore";
-  return ctx.html(
-    <CLayout title={title}>
-    </CLayout>,
-  );
-}).get("/dashboard", (ctx) => {
-  const title = "Dashboard";
-  return ctx.html(
-    <CLayout title={title}>
-    </CLayout>,
-  );
-}).get("/docs", (ctx) => {
-  const title = "Documentation";
-  return ctx.html(
-    <CLayout title={title}>
-    </CLayout>,
-  );
-}).get("/privacy-policy", (ctx) => {
-  const title = "Privacy Policy";
-  return ctx.html(
-    <CLayout title={title}>
-    </CLayout>,
-  );
-}).get("/terms-of-service", (ctx) => {
-  const title = "Terms of Service";
-  return ctx.html(
-    <CLayout title={title}>
-    </CLayout>,
-  );
-}).get("/tools", (ctx) => {
-  const title = "Tools";
-  return ctx.html(
-    <CLayout title={title}>
-    </CLayout>,
-  );
-}).get("/tools/bcrypt-generator", (ctx) => {
-  const title = "Bcrypt Generator Tools";
-  return ctx.html(
-    <CLayout title={title}>
-      <div x-data={`({"input": "hello worlds"})`}>
-        <label for="input" x-text="input">Input</label>
-        <br />
-        <input type="text" name="input" id="input" x-model="input" />
-      </div>
-    </CLayout>,
-  );
-}).get("/settings", (ctx) => {
-  const title = "Settings";
-  return ctx.html(
-    <CLayout title={title}>
-    </CLayout>,
-  );
-}).notFound((c) => {
-  const { pathname } = new URL(c.req.url);
-  return c.html(
-    <CHTMLDoc title="404 Not Found">
-      <h3>Page Not Found</h3>
-      <p>
-        The page you requested "<b>{pathname}</b>" was not found on our server
-      </p>
-      <p>
-        <a href="/">&laquo; Back to home</a>
-      </p>
-    </CHTMLDoc>,
-  );
-}).onError((e, c) => {
-  const url = new URL(c.req.url);
-  // if (isHttpError(e)) {
-  //   if (url.pathname.startsWith("/api")) {
-  //     return c.json({
-  //       error: true,
-  //       message: e.message,
-  //     }, e.status);
-  //   }
-  // }
-  return c.html(
-    <CHTMLDoc title="404 Not Found">
-      <h3>{e.message}</h3>
-      {CONF.mode === "production" && <pre>{e.stack}</pre>}
-      <p>
-        <a href="/">&laquo; Back to home</a>
-      </p>
-    </CHTMLDoc>,
-  );
-});
-
-// unload this app & cleanup
-addEventListener("unload", async () => {
-  AC.abort();
-  SOCKETS.forEach((socket) => {
-    socket.close();
+      </CLayout>,
+    );
+  }).get("/settings", (ctx) => {
+    const title = "Settings";
+    return ctx.html(
+      <CLayout title={title}>
+      </CLayout>,
+    );
+  }).notFound((c) => {
+    const { pathname } = new URL(c.req.url);
+    return c.html(
+      <CHTMLDoc title="404 Not Found">
+        <h3>Page Not Found</h3>
+        <p>
+          The page you requested "<b>{pathname}</b>" was not found on our server
+        </p>
+        <p>
+          <a href="/">&laquo; Back to home</a>
+        </p>
+      </CHTMLDoc>,
+    );
+  }).onError((e, c) => {
+    const url = new URL(c.req.url);
+    // if (isHttpError(e)) {
+    //   if (url.pathname.startsWith("/api")) {
+    //     return c.json({
+    //       error: true,
+    //       message: e.message,
+    //     }, e.status);
+    //   }
+    // }
+    return c.html(
+      <CHTMLDoc title="404 Not Found">
+        <h3>{e.message}</h3>
+        {CONF.mode === "production" && <pre>{e.stack}</pre>}
+        <p>
+          <a href="/">&laquo; Back to home</a>
+        </p>
+      </CHTMLDoc>,
+    );
   });
-  POOL.end();
-});
 
 // self executed at once
 (function () {
@@ -499,6 +529,36 @@ addEventListener("unload", async () => {
 
     return response;
   }, { signal: AC.signal, port: CONF.port });
+
+  let watcher: Deno.FsWatcher | undefined;
+  if (CONF.mode !== "production") {
+    watcher = Deno.watchFs(
+      new URL("./public", import.meta.url).pathname,
+      {
+        recursive: true,
+      },
+    );
+
+    (async () => {
+      for await (let ev of watcher) {
+        if (ev.kind === "modify" || ev.kind === "create") {
+          SOCKETS.forEach((s) => {
+            s.send("refresh");
+          });
+        }
+      }
+    })();
+  }
+
+  // unload this app & cleanup
+  globalThis.addEventListener("unload", async () => {
+    AC.abort();
+    watcher?.close();
+    SOCKETS.forEach((socket) => {
+      socket.close();
+    });
+    POOL.end();
+  });
 })();
 
 // components
@@ -582,6 +642,10 @@ function CNotif(props: {
 }) {
   return (
     <div
+      x-init={`() => {
+        console.log(this.show)
+      }`}
+      x-data={`{show: true}`}
       class={tw(
         props.boxed ? "p-2 ring ring-1" : undefined,
         props.boxed && ({
@@ -610,18 +674,20 @@ function CNotif(props: {
   );
 }
 
-class Helper {
-  static random = (max = 10) =>
-    Math.floor(Math.random() * Date.now()).toString(36);
-  static randomId(max = 10) {
-    let str = "";
-    for (let i = 0; i < max / 3 + 1; i++) str += this.random();
-    return str.substring(0, max);
-  }
-  static fakeArray = (size = 5) =>
-    Array(size)
-      .fill(null)
-      .map((_, k) => k);
+function random_hex_string(num = 36) {
+  return Math.floor(Math.random() * Date.now()).toString(num);
+}
+
+function random_string_id(max = 10) {
+  let str = "";
+  for (let i = 0; i < max / 3 + 1; i++) str += random_hex_string();
+  return str.substring(0, max);
+}
+
+function generate_fake_array(size = 10) {
+  return Array(size)
+    .fill(null)
+    .map((_, k) => k);
 }
 
 async function getValidConfiguration() {
@@ -659,26 +725,17 @@ async function getValidConfiguration() {
         });
       }
     }).transform((urlString) => {
-      let {
-        hostname,
-        port,
-        username: user,
-        password,
-        searchParams,
-        pathname,
-      } = new URL(
-        urlString,
-      );
-      const [_, database] = pathname.split("/");
+      const url = new URL(urlString);
+      const [_, database] = url.pathname.split("/");
       const options: PGClientOptions = {
-        applicationName: searchParams.get("name") ?? "single_site_blog",
+        applicationName: url.searchParams.get("name") ?? "single_site_blog",
         database,
-        hostname,
-        port,
-        user,
-        password,
+        hostname: url.hostname,
+        port: url.port,
+        user: url.username,
+        password: url.password,
       };
-      const pool_size = parseInt(searchParams.get("poolSize") ?? "");
+      const pool_size = parseInt(url.searchParams.get("poolSize") ?? "");
       return {
         options,
         pool_size: isNaN(pool_size) ? 4 : pool_size,
@@ -714,7 +771,7 @@ async function installDatabase(options: PGClientOptions) {
     return;
   }
   console.log("Being install database");
-  const schema = `
+  const schema = /* sql */ `
 drop schema if exists system_schema cascade;
 
 create schema system_schema;
@@ -748,6 +805,16 @@ create table system_schema.posts (
   "updated_at" timestamp not null default now()
 );
 
+-- create initial users
+insert into system_schema.users (name, email, password, role, email_verified_at, avatar_url)
+  values
+    ('Administrator', 'admin@example.net', '${await bcrypt.hash(
+    "password",
+  )}', 10, now(), 'https://www.gravatar.com/avatar/00000000000000000000000000000000')
+  returning
+    id
+;
+
 -- select * from information_schema.tables where table_schema='system_schema';
   `;
   const client = new PGClient(options);
@@ -760,169 +827,68 @@ create table system_schema.posts (
   await client.end();
 }
 
-function createHMRHandler(): Handler {
-  return async (ctx, next) => {
-    // dont do in production
-    if (CONF.mode === "production") return next();
-    if (ctx.req.headers.get("upgrade") == "websocket") {
-      const { response, socket } = Deno.upgradeWebSocket(ctx.req);
-      SOCKETS.add(socket);
-      socket.onclose = () => {
-        SOCKETS.delete(socket);
-      };
-      return response;
-    } else {
-      return ctx.newResponse(
-        `let socket,reconnectTimer;const wsOrigin=window.location.origin.replace("http","ws").replace("https","wss"),socketUrl=wsOrigin+"/_hmr";hmrSocket();function hmrSocket(callback){if(socket){socket.close();}socket=new WebSocket(socketUrl);socket.addEventListener("open",()=>{console.log("HMR Connected");},{once: true});socket.addEventListener("open",callback);socket.addEventListener("message",(event)=>{if(event.data==="refresh"){console.log("refreshings");window.location.reload();}});socket.addEventListener("close",()=>{console.log("reconnecting...");clearTimeout(reconnectTimer);reconnectTimer=setTimeout(()=>{hmrSocket(()=>{window.location.reload();});},1000);});}`,
-        200,
-        {
-          "content-type": "application/javascript; charset=utf-8;",
-          "cache-control": "private, max-age=0, must-revalidate",
-        },
-      );
-    }
-  };
-}
-
-function createPostgresMiddleware(): MiddlewareHandler {
-  return async (c, next) => {
-    c.db = await POOL.connect();
-    c.set("db_connected", true);
-    await next();
-    if (c.db.connected) {
-      c.db.release();
-      c.set("db_connected", false);
-    }
-  };
-}
-
-function createSessionMiddleware(opts?: {
-  cookieName?: string;
-  cookieOptions?: CookieOptions;
-  skipPaths?: string[];
-}): MiddlewareHandler {
-  let cookieName = opts?.cookieName ?? "ssb_session",
-    cookieOptions: CookieOptions = {
-      httpOnly: true,
+function sessionMiddleware(cookieOptions?: CookieOptions): MiddlewareHandler {
+  const options: CookieOptions = {
       path: "/",
+      httpOnly: true,
       sameSite: "Lax",
-      ...(opts?.cookieOptions ?? {}),
+      ...(cookieOptions ?? {}),
     },
-    data: AnyRecord = {},
-    flashData: AnyRecord = {},
-    expiresAt: Date | null = null,
-    destroy = () => {
-      data = {};
-      flashData = {};
-    },
-    setExpires = (date: Date) => {
-      expiresAt = date;
-      return;
-    },
-    proxy = new Proxy({
-      get expiresAt() {
-        return expiresAt;
-      },
-      get data() {
-        return data;
-      },
-      get flashData() {
-        return flashData;
-      },
-      destroy,
-      setExpires,
-    }, {
-      set(target, p: never, newValue) {
-        if (p in target || ["flash"].includes(p)) {
-          throw new Error("Setter is not allowed for " + p);
-        }
-        data[p] = newValue;
-        return true;
-      },
-      get(target, p: never) {
-        if (p === "flash") {
-          return (k: never, v: never) => {
-            if (typeof k === "undefined") return flashData;
-            if (typeof v === "undefined") {
-              const value = flashData[k];
-              delete flashData[k];
-              return value;
-            }
-            flashData[k] = v;
-            return v;
-          };
-        }
-        return (p in target) ? target[p] : data[p];
-      },
-    }) as unknown as Session;
+    sessionProxy = (i = {}, f = {}) => {
+      const data = new Map(Object.entries(i)),
+        flash = new Map(Object.entries(f));
+      return new Proxy({
+        get data() {
+          return Object.fromEntries(data);
+        },
+        flash(k: string, v: unknown) {
+          if (typeof k === "undefined") return Object.fromEntries(flash);
+          if (typeof v === "undefined") {
+            const d = flash.get(k);
+            flash.delete(k);
+            return d;
+          }
+          flash.set(k, v);
+        },
+        clear() {
+          data.clear();
+          flash.clear();
+        },
+      }, {
+        set(target, p: string, newValue, _receiver) {
+          return p in target ? false : (data.set(p, newValue), true);
+        },
+        get(target, p: string, _receiver) {
+          return p in target ? target[p as never] : data.get(p);
+        },
+      }) as unknown as Session;
+    };
   return async (c, next) => {
-    // reset
-    expiresAt = null;
-    destroy();
-    try {
-      // get cookie
-      const cdata = c.req.cookie(cookieName);
-      if (
-        cdata && await Jwt.verify(cdata, CONF.secret, AlgorithmTypes.HS512)
-      ) {
-        const { payload } = Jwt.decode(cdata);
-        data = payload.data || {};
-        flashData = payload.flashData || {};
-        expiresAt = payload.expiresAt || null;
-      }
-    } catch (e) {}
-    c.session = proxy;
-    await next();
-    const tokenValue = await Jwt.sign(
-      { data, expiresAt, flashData },
-      CONF.secret,
-      AlgorithmTypes.HS512,
-    );
-    if (expiresAt) {
-      cookieOptions.expires = new Date(expiresAt);
-    }
-    // save cookie
-    c.cookie(cookieName, tokenValue, cookieOptions);
-  };
-}
+    // dont do session for ws
+    if (c.req.headers.has("upgrade")) return next();
 
-function createHonoApp(id = crypto.randomUUID()) {
-  // @ts-expect-error
-  if (globalThis[id]) {
-    // throw if has in global
-    throw new Error(
-      `"${id}" Identifier has in global. please use another one.`,
-    );
-  }
-  // @ts-expect-error
-  globalThis[id] = true;
-  return new Hono()
-    .use(
-      createPostgresMiddleware(),
-      createSessionMiddleware(),
-    )
-    .all("/_hmr", createHMRHandler());
+    const cookieValue = c.req.cookie("ssb_session");
+    c.session = sessionProxy({}, {});
+    await next();
+  };
 }
 
 /** types */
 declare module "https://deno.land/x/hono@v2.7.2/mod.ts" {
   export class Context {
-    db: PGPoolClient;
     session: Session;
   }
 }
 type Session = {
-  [k: string]: unknown | unknown[] | Record<string, unknown>;
+  [k: string]: any | any[] | AnyRecord;
 } & {
   data: Record<string, any>;
-  flashData: Record<string, any>;
-  expiresAt: Date | null;
   flash<K extends string, V extends string | undefined>(
     key?: K,
     value?: V,
   ): V | void;
-  setExpires: (date: Date) => void;
-  destroy: () => void;
+  // expires: (date?: Date) => Date;
+  clear: () => void;
 };
 type AnyRecord = Record<string, any>;
 type JSXChild = string | number | JSXNode | JSXChild[];
