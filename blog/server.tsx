@@ -10,7 +10,8 @@ import {
 import { serve } from "https://deno.land/std@0.171.0/http/server.ts";
 import { parse as parseFlags } from "https://deno.land/std@0.171.0/flags/mod.ts";
 import {
-  Handler,
+  Context as HonoContext,
+  Handler as HonoHandler,
   Hono,
   MiddlewareHandler,
 } from "https://deno.land/x/hono@v2.7.2/mod.ts";
@@ -57,11 +58,7 @@ const CONF = await getValidConfiguration(), /* Valid configuration OR Throw */
   POOL = new PGPool(CONF.db.options, CONF.db.pool_size, true),
   SOCKETS = new Set<WebSocket>();
 
-const ROUTER = new Hono()
-  .use(
-    "*",
-    sessionMiddleware(),
-  ) /*.get("/", (c, next) => {
+const ROUTER = new Hono() /*.get("/", (c, next) => {
   c.session.hello = "World Man";
   c.session.flash("hello", "Flash Hello World");
   return next();
@@ -140,15 +137,18 @@ const ROUTER = new Hono()
     return ctx.redirect("/signin");
   }).post(
     "/signin",
+    sessionMiddleware(),
     async (c) => {
+      const data = await c.req.formData();
+      c.session.loggedIn = data.get("email");
       return c.redirect(c.req.url);
     },
-  ).get("/signin", (c) => {
+  ).get("/signin", sessionMiddleware(), (c) => {
     const error = false;
     const title = "SignIn";
     return c.html(
       <CLayout title={title}>
-        <h3>{title}</h3>
+        <h3>{title}: {c.session?.loggedIn}</h3>
         <form
           method="POST"
           class="max-w-[360px]"
@@ -863,13 +863,40 @@ function sessionMiddleware(cookieOptions?: CookieOptions): MiddlewareHandler {
         },
       }) as unknown as Session;
     };
+  const getUserCookie = async (c: HonoContext) => {
+    let data = {}, flash = {};
+    try {
+      const value = c.req.cookie("ssb_session");
+      if (!!value && (await Jwt.verify(value, CONF.secret))) {
+        const { payload } = Jwt.decode(value);
+        if (typeof payload.data === "object") {
+          data = payload.data;
+        }
+        if (typeof payload.flash === "object") {
+          flash = payload.flash;
+        }
+      }
+    } catch (e) {
+      console.error(e.message);
+    }
+    return { data, flash };
+  };
+
   return async (c, next) => {
     // dont do session for ws
     if (c.req.headers.has("upgrade")) return next();
-
-    const cookieValue = c.req.cookie("ssb_session");
-    c.session = sessionProxy({}, {});
+    const { data, flash } = await getUserCookie(c);
+    c.session = sessionProxy(data, flash);
     await next();
+    const currentValue = { data: c.session.data, flash: c.session.flash() };
+    if (JSON.stringify({ data, flash }) !== JSON.stringify(currentValue)) {
+      // do set-cookie
+      c.cookie(
+        "ssb_session",
+        await Jwt.sign(currentValue, CONF.secret),
+        options,
+      );
+    }
   };
 }
 
