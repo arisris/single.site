@@ -1,11 +1,7 @@
-import {
-  Hono,
-  sql,
-} from "https://raw.githubusercontent.com/arisris/single.site/master/lib/deps.ts";
-import {
-  Bindings,
-  start,
-} from "https://raw.githubusercontent.com/arisris/single.site/master/lib/system.ts";
+import { Hono, sql, z } from "./lib/deps.ts";
+import { Bindings, start } from "./lib/system.ts";
+//import { jwt } from "https://deno.land/x/hono@v2.5.10/middleware.ts";
+import { Jwt } from "https://deno.land/x/hono@v2.5.10/utils/jwt/index.ts";
 
 const app = new Hono<{ Bindings: Bindings }>();
 app.get("/", async (c) => {
@@ -25,6 +21,31 @@ app.get("/", async (c) => {
     .executeTakeFirst();
   c.pretty(true);
   return c.json({ msg: "Hiirrr", data });
+});
+app.post("/authenticate/password", async (c) => {
+  const input = await z.object({
+    login: z.string().min(1),
+    password: z.string().min(1),
+  }).parseAsync(await c.req.json());
+  const user = await c.env.db.withSchema("blog_app")
+    .selectFrom("users")
+    .where("user_email", "=", input.login)
+    .orWhere("user_login", "=", input.login)
+    .select(["id", "user_email", "user_login", "user_password"])
+    .limit(1)
+    .executeTakeFirstOrThrow();
+  if (!user.user_password) throw new Error("Password not set");
+  
+  return c.json({ msg: "Hi", user });
+});
+app.post("/create-user", (c) => {
+  return c.json({ msg: "Hi" });
+});
+app.onError((err, c) => {
+  console.error(err);
+  return c.json({
+    msg: err.message,
+  }, 500);
 });
 
 await start(app);

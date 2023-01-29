@@ -37,8 +37,6 @@ export async function start<T extends Partial<Environment>>(
   app: Hono<T>,
   signal?: AbortSignal,
 ) {
-  const honoApp = new Hono();
-  honoApp.route("/", app);
   const ENV: Bindings = Object.seal(
     await schema.parseAsync(parseFlags(Deno.args, {
       boolean: ["install"],
@@ -86,7 +84,7 @@ export async function start<T extends Partial<Environment>>(
         });
       }
     }
-    return honoApp.fetch(req, ENV);
+    return app.fetch(req, ENV);
   }, { signal, port: ENV.port });
 
   // let watcher: Deno.FsWatcher | undefined;
