@@ -4,3 +4,4 @@
 ## files
 .env
 deno.lock
+deno.json

@@ -1,4 +1,11 @@
-import { Bindings, Hono, sql, start } from "./deps.ts";
+import {
+  Hono,
+  sql,
+} from "https://raw.githubusercontent.com/arisris/single.site/master/lib/deps.ts";
+import {
+  Bindings,
+  start,
+} from "https://raw.githubusercontent.com/arisris/single.site/master/lib/system.ts";
 
 const app = new Hono<{ Bindings: Bindings }>();
 app.get("/", async (c) => {
@@ -13,6 +20,7 @@ app.get("/", async (c) => {
         .as("sites"),
     ])
     .where("users.id", "=", 1)
+    .limit(1)
     .groupBy("users.id")
     .executeTakeFirst();
   c.pretty(true);
