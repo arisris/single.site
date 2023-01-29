@@ -1,6 +1,4 @@
-import { Hono } from "./deps.ts";
-import { sql } from "./lib/db.ts";
-import { Bindings, start } from "./lib/system.ts";
+import { Bindings, Hono, sql, start } from "./deps.ts";
 
 const app = new Hono<{ Bindings: Bindings }>();
 app.get("/", async (c) => {
