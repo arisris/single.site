@@ -1,6 +1,6 @@
 {
   "tasks": {
-    "blog:dev": "deno run -A --watch=blog/.env,blog/server.tsx blog/server.tsx"
+    "blog:dev": "deno run -A --watch=blog/ blog/main.tsx --db postgres://postgres:postgres@localhost/helloapp --secret EzuNjnbpy4CYcpURaUyfXWZgwkuTgLY2GYKDiAkkL58="
   },
   "importMap": "./import_map.json"
 }

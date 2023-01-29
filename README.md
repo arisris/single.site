@@ -1,4 +1,4 @@
-### Plug & play script
+### Plug & play deno script
 
 Single file script
 
