@@ -1,40 +1,39 @@
 import {
   CompiledQuery,
+  Kysely,
+  //Migrator,
+  PostgresAdapter,
+  PostgresIntrospector,
+  PostgresQueryCompiler,
+} from "kysely";
+import type {
   DatabaseConnection,
   DatabaseIntrospector,
   Dialect,
   DialectAdapter,
   Driver,
-  Kysely,
   KyselyPlugin,
   LogConfig,
   Migration,
   MigrationProvider,
-  Migrator,
-  Pool,
-  PoolClient,
-  PostgresAdapter,
-  PostgresIntrospector,
-  PostgresQueryCompiler,
   QueryCompiler,
   QueryResult,
-  sql,
   TransactionSettings,
-} from "./deps.ts";
+} from "kysely";
+import { Pool as PGPool, PoolClient as PGPoolClient } from "postgres/mod.ts";
 
-export { sql };
+// function createKyPgMigrator<TDB = unknown>(
+//   db: Kysely<TDB>,
+//   migrationFolder: URL,
+// ) {
+//   return new Migrator({
+//     db,
+//     provider: new DenoFileMigrationProvider(migrationFolder),
+//   });
+// }
 
-export function createKyPgMigrator<TDB = unknown>(
-  db: Kysely<TDB>,
-  migrationFolder: URL,
-) {
-  return new Migrator({
-    db,
-    provider: new DenoFileMigrationProvider(migrationFolder),
-  });
-}
-
-export function createKyPg<TDB = unknown>(
+// deno-lint-ignore no-explicit-any
+export function createKyPg<TDB = Record<string, any>>(
   connectionString: string,
   opts?: {
     poolSize?: number;
@@ -44,7 +43,7 @@ export function createKyPg<TDB = unknown>(
 ) {
   return new Kysely<TDB>({
     dialect: new DenoProstgresDialect<TDB>({
-      pool: new Pool(connectionString, opts?.poolSize || 2),
+      pool: new PGPool(connectionString, opts?.poolSize || 2),
     }),
     plugins: opts?.plugins,
     log: opts?.log,
@@ -54,7 +53,7 @@ export function createKyPg<TDB = unknown>(
 const PRIVATE_RELEASE_METHOD = Symbol();
 
 interface DenoProstgresDialectConfig {
-  pool: Pool | (() => Pool | Promise<Pool>);
+  pool: PGPool | (() => PGPool | Promise<PGPool>);
 }
 
 class DenoProstgresDialect<TDB = unknown> implements Dialect {
@@ -74,8 +73,8 @@ class DenoProstgresDialect<TDB = unknown> implements Dialect {
 }
 
 class DenoPostgresDriver implements Driver {
-  #pool?: Pool;
-  #connections?: WeakMap<PoolClient, DenoPostgresDatabaseConnection>;
+  #pool?: PGPool;
+  #connections?: WeakMap<PGPoolClient, DenoPostgresDatabaseConnection>;
 
   constructor(private config: DenoProstgresDialectConfig) {}
   async init(): Promise<void> {
@@ -124,7 +123,7 @@ class DenoPostgresDriver implements Driver {
 }
 
 class DenoPostgresDatabaseConnection implements DatabaseConnection {
-  constructor(private poolCLient: PoolClient) {}
+  constructor(private poolCLient: PGPoolClient) {}
   async executeQuery<R>(
     compiledQuery: CompiledQuery,
   ): Promise<QueryResult<R>> {
@@ -157,6 +156,7 @@ class DenoPostgresDatabaseConnection implements DatabaseConnection {
   }
 }
 
+// deno-lint-ignore no-unused-vars
 class DenoFileMigrationProvider implements MigrationProvider {
   constructor(private url: URL) {
     if (!url.href.endsWith("/")) {

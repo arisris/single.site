@@ -2,11 +2,6 @@
   "deno.enable": true,
   "deno.lint": true,
   "deno.suggest.paths": false,
-  "deno.suggest.imports.hosts": {
-    "https://deno.land": false,
-    "https://x.nest.land": false,
-    "https://crux.land": false
-  },
   "[typescript]": {
     "editor.defaultFormatter": "denoland.vscode-deno"
   },
