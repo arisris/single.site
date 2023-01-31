@@ -1,4 +1,3 @@
-
 export function handleHMR(path: string, req: Request, sockets: Set<WebSocket>) {
   if (req.headers.get("upgrade") == "websocket") {
     const { response, socket } = Deno.upgradeWebSocket(req);

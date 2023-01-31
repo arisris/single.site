@@ -6,10 +6,11 @@ import { jsx } from "hono/middleware.ts";
 import { AppDB, AppEnv } from "./types.ts";
 import { createKyPg } from "./utils/kypg.ts";
 import { getValidEnv } from "./utils/env.ts";
-import { handleHMR } from "./utils/server.ts";
+import { handleHMR } from "./utils/hmr.ts";
 import { getStyleTag, initializeTwind, tw } from "./utils/twind.ts";
 import { serveStatic } from "./http/middleware/serve-static.ts";
 import { mainRouter } from "./http/main.tsx";
+import { createHttpCaller } from "./trpc/main.ts";
 import InternalErrorUI from "./views/errors/internal.tsx";
 import NotFoundErrorUI from "./views/errors/notfound.tsx";
 import twindConfig from "../twind.config.ts";
@@ -23,9 +24,10 @@ const db = createKyPg(validEnv.DATABASE_URL, {
   log: validEnv.DENO_ENV !== "production" ? ["error", "query"] : undefined,
 }) as AppDB;
 const rootRouter = new Hono<AppEnv>();
-
+rootRouter.all("/trpc/*", (c) => createHttpCaller(c.req, c.env));
 rootRouter.route("/", mainRouter);
 
+// handle static assets
 rootRouter.all(
   "/*",
   serveStatic({
@@ -50,13 +52,17 @@ rootRouter.onError((e, c) => {
 const finalHandler: FinalHandler = async (req, connInfo) => {
   sheet.reset();
   const url = new URL(req.url);
+
+  // handle hmr
   if (validEnv.DENO_ENV !== "production" && url.pathname === "/_hmr") {
     return handleHMR("/_hmr", req, sockets);
   }
+
   const response = await rootRouter.fetch(req, {
     ...connInfo,
     ...{ validEnv, db },
   });
+
   if (response.headers.get("content-type")?.match("text/html")) {
     const cloned = response.clone();
     const $$ = htmldom(await cloned.text());

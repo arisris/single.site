@@ -96,3 +96,5 @@ export function jwtSession(options?: Options) {
     return proxy(c, parsed ?? {});
   };
 }
+
+export const getSessionDefault = jwtSession();

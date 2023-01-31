@@ -1,14 +1,14 @@
-// deno-lint-ignore-file no-explicit-any
-import { ConnInfo } from "std/http/server.ts";
 import { Kysely } from "kysely";
 import { ValidEnv } from "./utils/env.ts";
+// deno-lint-ignore no-explicit-any
+export type AnyRecord = Record<string, any>;
 
-export type AppDB = Kysely<Record<string, any>>;
+export type AppDB = Kysely<AnyRecord>;
 
 export type AppEnv = {
-  Bindings: ConnInfo & {
-    validEnv: ValidEnv;
+  Bindings: {
+    readonly validEnv: ValidEnv;
     db: AppDB;
   };
-  Variables: Record<string, any>;
+  Variables: AnyRecord;
 };
