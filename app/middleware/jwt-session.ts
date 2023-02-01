@@ -3,7 +3,7 @@ import { Context } from "hono/mod.ts";
 import { Jwt } from "hono/utils/jwt/index.ts";
 import { AlgorithmTypes } from "hono/utils/jwt/types.ts";
 import { CookieOptions } from "hono/utils/cookie.ts";
-import ms from "ms";
+import ms from "https://esm.sh/ms@2.1.3";
 
 type Primitive = string | boolean | number | bigint | null;
 type Primitives = Primitive | Record<string, Primitive> | Primitive[];

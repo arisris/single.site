@@ -1,6 +1,7 @@
 import {
   CompiledQuery,
   Kysely,
+  Migrator,
   //Migrator,
   PostgresAdapter,
   PostgresIntrospector,
@@ -20,17 +21,21 @@ import type {
   QueryResult,
   TransactionSettings,
 } from "kysely";
-import { Pool as PGPool, PoolClient as PGPoolClient } from "postgres/mod.ts";
+import {
+  Pool as PGPool,
+  PoolClient as PGPoolClient,
+} from "https://deno.land/x/postgres@v0.17.0/mod.ts";
 
-// function createKyPgMigrator<TDB = unknown>(
-//   db: Kysely<TDB>,
-//   migrationFolder: URL,
-// ) {
-//   return new Migrator({
-//     db,
-//     provider: new DenoFileMigrationProvider(migrationFolder),
-//   });
-// }
+// deno-lint-ignore no-explicit-any
+export function createKyPgMigrator<TDB = Record<string, any>>(
+  db: Kysely<TDB>,
+  migrationFolder: URL,
+) {
+  return new Migrator({
+    db,
+    provider: new DenoFileMigrationProvider(migrationFolder),
+  });
+}
 
 // deno-lint-ignore no-explicit-any
 export function createKyPg<TDB = Record<string, any>>(
@@ -156,7 +161,6 @@ class DenoPostgresDatabaseConnection implements DatabaseConnection {
   }
 }
 
-// deno-lint-ignore no-unused-vars
 class DenoFileMigrationProvider implements MigrationProvider {
   constructor(private url: URL) {
     if (!url.href.endsWith("/")) {
