@@ -1,12 +1,13 @@
+import htmldom from "htmldom";
 import { Handler as FinalHandler, serve } from "std/http/server.ts";
 import { Hono } from "hono/mod.ts";
 import { AppDB, AppEnv } from "./types.ts";
 import { createKyPg } from "./utils/kypg.ts";
 import { getValidEnv } from "./utils/env.ts";
 import { handleHMR } from "./utils/hmr.ts";
-import { getSessionDefault } from "./middleware/jwt-session.ts";
-import { serveStatic } from "./middleware/serve-static.ts";
-import { createCaller, createHttpCaller } from "./trpc/main.ts";
+import { serveStatic } from "./http/middleware/serve-static.ts";
+import { mainRouter } from "./http/main.tsx";
+import { createHttpCaller } from "./trpc/main.ts";
 
 const validEnv = getValidEnv();
 const ac = new AbortController();
@@ -15,25 +16,12 @@ const db = createKyPg(validEnv.DATABASE_URL, {
   poolSize: 2,
   log: validEnv.DENO_ENV !== "production" ? ["error", "query"] : undefined,
 }) as AppDB;
-const appRoot = new Hono<AppEnv>();
+const rootRouter = new Hono<AppEnv>();
 // main router
-appRoot.get("/session-test", async (c) => {
-  const caller = await createCaller(c.env);
-  const hello = await caller.hello();
-  console.log(hello);
-  const sess = await getSessionDefault(c);
-  if (!sess.counter) {
-    sess.counter = 1;
-  } else {
-    sess.counter = sess.counter as number + 1;
-  }
-  console.log(sess.counter);
-  await sess.commit();
-  return c.html(`Hello`);
-});
+rootRouter.route("/", mainRouter);
 
 // handle static assets
-appRoot.use("/static/*").all(serveStatic({
+rootRouter.use("/static/*").all(serveStatic({
   rootUrl: new URL("../public", import.meta.url),
   basePath: "/static",
   weak: true,
@@ -53,12 +41,16 @@ const finalHandler: FinalHandler = async (req, connInfo) => {
   }
 
   // fetch hono router
-  const response = await appRoot.fetch(req, {
+  const response = await rootRouter.fetch(req, {
     ...connInfo,
     ...env,
   });
   return response;
 };
+
+export async function configureServer() {
+  
+}
 
 export function bootServer() {
   serve(finalHandler, { signal: ac.signal });

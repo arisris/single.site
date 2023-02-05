@@ -1,0 +1,8 @@
+{
+  "tasks": {
+    "dev": "deno run -A https://raw.githubusercontent.com/arisris/pgproxy/main/main.ts --dsn postgresql://postgres:postgres@localhost/kodoksite0 ---secret 66b094cde7ba9038abcb62e0b40e6c28 --port 8999 & deno run -A --watch main.tsx --dev --secret 66b094cde7ba9038abcb62e0b40e6c28 --pg-proxy http://localhost:8999 --port 8000  --minify-html false",
+    "bundle": "deno bundle main.tsx | esbuild --minify > main.bundle.js"
+  },
+  "lock": false,
+  "importMap": "./import_map.json"
+}

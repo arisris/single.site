@@ -1,18 +1,9 @@
 {
   "tasks": {
-    "dev": "deno run -A --watch=app/,main.tsx main.tsx"
+    "blog:dev": "deno run -A --watch=blog/ blog/main.ts",
+    "denupkg:dev": "deno run -A --watch=denupkg/ denupkg/main.ts"
   },
-  "compilerOptions": {},
   "imports": {
-    "@trpc/server": "https://esm.sh/@trpc/server@10.5.0",
-    "@trpc/server/": "https://esm.sh/@trpc/server@10.5.0/",
-    "bcrypt": "https://deno.land/x/bcrypt@v0.4.1/mod.ts",
-    "hono/": "https://deno.land/x/hono@v2.7.5/",
-    "kysely": "https://cdn.jsdelivr.net/npm/kysely/dist/esm/index.js",
-    "std/": "https://deno.land/std@0.173.0/",
-    "zod": "https://deno.land/x/zod@v3.20.0/mod.ts",
-    "https://deno.land/std@0.160.0/": "https://deno.land/std@0.173.0/",
-    "https://deno.land/std@0.165.0/": "https://deno.land/std@0.173.0/",
-    "https://deno.land/std@0.167.0/": "https://deno.land/std@0.173.0/"
+    "std/": "https://deno.land/std@0.171.0/"
   }
 }

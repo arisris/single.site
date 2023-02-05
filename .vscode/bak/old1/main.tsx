@@ -5,5 +5,10 @@
 /// <reference lib="deno.ns" />
 
 import "std/dotenv/load.ts";
-import { bootServer } from "./app/server.ts";
-addEventListener("unload", bootServer());
+import { bootServer } from "./src/server.ts";
+
+if (import.meta.main) {
+  addEventListener("unload", bootServer());
+}
+
+export { bootServer };

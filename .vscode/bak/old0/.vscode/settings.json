@@ -2,13 +2,17 @@
   "deno.enable": true,
   "deno.lint": true,
   "deno.suggest.paths": false,
+  "deno.importMap": "./import_map.json",
+  "deno.suggest.imports.hosts": {
+    "https://deno.land": false,
+    "https://x.nest.land": false,
+    "https://crux.land": false
+  },
   "[typescript]": {
     "editor.defaultFormatter": "denoland.vscode-deno"
   },
   "[typescriptreact]": {
     "editor.defaultFormatter": "denoland.vscode-deno"
   },
-  "[javascript]": {
-    "editor.defaultFormatter": "denoland.vscode-deno"
-  }
+  "twind.enable": true
 }
