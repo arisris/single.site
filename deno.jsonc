@@ -1,0 +1,9 @@
+{
+  "tasks": {
+    "blog:dev": "deno run -A --watch=blog/ blog/main.ts",
+    "depak:dev": "deno run -A --watch=depak/ depak/main.ts"
+  },
+  "imports": {
+    //"https://deno.land/std@0.171.0/": "https://deno.land/std@0.173.0/"
+  }
+}
