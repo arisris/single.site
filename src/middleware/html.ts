@@ -52,14 +52,29 @@ export function decorateHtmlOutput(
       // reset stored sheet
       sheet.reset();
       let hasAlpine = false;
-      // deno-lint-ignore no-explicit-any
-      $$("*").each((_: number, tag: any) => {
-        if (tag.attributes.class && tag.attributes.class.length) {
+      $$("*").each((_: number, tag: {
+        attributes?: Record<string, string>;
+      }) => {
+        if (tag.attributes?.class && tag.attributes.class.length) {
           tag.attributes.class = tw(tag.attributes.class);
         }
         if (useAlpine) {
+          if (tag.attributes) {
+            for (const key in tag.attributes) {
+              if (key.startsWith("x-on-")) {
+                tag.attributes["x-on:".concat(key.substring(5))] =
+                  tag.attributes[key];
+                delete tag.attributes[key];
+              }
+              if (key.startsWith("x-bind-")) {
+                tag.attributes["x-on:".concat(key.substring(7))] = tag.attributes[key];
+                delete tag.attributes[key];
+              }
+            }
+          }
           if (
-            !hasAlpine && (tag.attributes["x-data"] || tag.attributes["x-init"])
+            !hasAlpine &&
+            (tag.attributes?.["x-data"] || tag.attributes?.["x-init"])
           ) {
             hasAlpine = true;
           }

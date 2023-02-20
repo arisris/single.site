@@ -4,24 +4,7 @@ import { type AppEnv, getValidEnv } from "./env.ts";
 import { decorateHtmlOutput, TwindConfig } from "./middleware/html.ts";
 import { liveReloadServer } from "./middleware/livereload.ts";
 import { fileServer } from "./middleware/file_server.ts";
-
-const app = new Hono<AppEnv>();
-app.get("/hello", (c) => c.html("Hello"));
-app.get("/", (c) => {
-  return c.html(`<!doctype html>
-  <html lang="en">
-    <head>
-      <meta charset="utf-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    </head>
-    <body x-data="{count: 0}">
-      <h3 class="text-red-500">Simple Alpine Counter</h3>
-      <h4 class="text-purple-500">Count: <span x-text="count" class="text-green-500">0</span></h4>
-      <button class="px-2 focus:ring-1" type="button" x-on:click="count++">Inc</button>
-      <button class="px-2 focus:ring-1" type="button" x-on:click="count--">Dec</button>
-    </body>
-  </html>`);
-});
+import app from "./routes/app.tsx";
 
 export type StartOptions = {
   entryPoint: string;
