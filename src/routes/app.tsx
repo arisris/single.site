@@ -7,11 +7,11 @@ import ResetPassword from "$/ui/auth/reset-password.tsx";
 
 const app = new Hono<AppEnv>();
 
-app.get("/hello", (c) => c.html("Hello"));
-
 app.get("/", (c) => {
   return c.html(<Home />);
 });
+
+app.get("/hello", (c) => c.html("Hello"));
 
 app.get("/signin", (c) => {
   return c.html(<SignIn />);

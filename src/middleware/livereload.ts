@@ -22,7 +22,7 @@ export function liveReloadServer({
   } else {
     addEventListener("unload", reload);
   }
-  return (ctx, next) => {
+  return async (ctx) => {
     if (ctx.req.header("upgrade") == "websocket") {
       const { response, socket } = Deno.upgradeWebSocket(
         ctx.req as unknown as Request,
@@ -43,7 +43,7 @@ export function liveReloadServer({
         },
       );
     }
-    ctx.finalized = true;
-    return next();
+    await Promise.resolve(true);
+    return ctx.res;
   };
 }
