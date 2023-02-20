@@ -1,0 +1,19 @@
+{
+  "tasks": {
+    "start": "deno run -A --watch=public/,src/,main.ts main.ts"
+  },
+  "imports": {
+    "$/": "./src/",
+    "@trpc/server": "https://esm.sh/@trpc/server@10.5.0",
+    "@trpc/server/": "https://esm.sh/@trpc/server@10.5.0/",
+    "bcrypt": "https://deno.land/x/bcrypt@v0.4.1/mod.ts",
+    "htmldom": "https://esm.sh/htmldom@4.0.11",
+    "jose": "https://deno.land/x/jose@v4.11.1/index.ts",
+    "twind": "https://esm.sh/twind@0.16.17",
+    "twind/": "https://esm.sh/twind@0.16.17/",
+    "zod": "https://esm.sh/zod@3.20.2",
+    "hono/": "https://deno.land/x/hono@v3.0.0/",
+    "postgres/": "https://deno.land/x/postgres@v0.17.0/",
+    "std/": "https://deno.land/std@0.171.0/"
+  }
+}
