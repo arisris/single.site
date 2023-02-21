@@ -1,6 +1,6 @@
 {
   "imports": {
-    "$/": "./src/",
+    "$server": "./server/",
     "@trpc/server": "https://esm.sh/@trpc/server@10.5.0",
     "@trpc/server/": "https://esm.sh/@trpc/server@10.5.0/",
     "bcrypt": "https://deno.land/x/bcrypt@v0.4.1/mod.ts",

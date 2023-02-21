@@ -1,6 +1,10 @@
 {
   "tasks": {
-    "start": "deno run -A --watch=public/,src/,main.ts main.ts"
+    "start": "deno run -A --watch=static/,src/ main.ts",
+    "docker:dev:up": "docker-compose -f ./docker-compose-dev.yaml up -d",
+    "docker:dev:down": "docker-compose -f ./docker-compose-dev.yaml down",
+    "docker:prod:up": "docker-compose -f ./docker-compose.yaml up -d",
+    "docker:prod:down": "docker-compose -f ./docker-compose.yaml down"
   },
   "compilerOptions": {
     "jsx": "react-jsx",

@@ -1,8 +1,8 @@
 import Document from "../layouts/document.tsx";
 
-export default (
+export default function InternalErrorPage(
   { error, debug }: { error: Error; debug: boolean },
-) => {
+) {
   return (
     <Document title="404 Not Found">
       <h3>{error.message}</h3>
@@ -12,4 +12,4 @@ export default (
       </p>
     </Document>
   );
-};
+}

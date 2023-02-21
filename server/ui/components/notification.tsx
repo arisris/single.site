@@ -1,11 +1,11 @@
 import { tw } from "twind";
 
-export default (props: {
+export default function Notification(props: {
   type: "danger" | "success" | "warning" | "info";
   message: string;
   class?: string;
   boxed?: boolean;
-}) => {
+}) {
   return (
     <div
       class={tw(
@@ -34,4 +34,4 @@ export default (props: {
       </span>
     </div>
   );
-};
+}

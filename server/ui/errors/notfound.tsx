@@ -1,6 +1,6 @@
 import Document from "../layouts/document.tsx";
 
-export default ({ pathname }: { pathname: string }) => {
+export default function NotFoundErrorPage({ pathname }: { pathname: string }) {
   return (
     <Document title="404 Not Found">
       <h3>Page Not Found</h3>
@@ -12,4 +12,4 @@ export default ({ pathname }: { pathname: string }) => {
       </p>
     </Document>
   );
-};
+}

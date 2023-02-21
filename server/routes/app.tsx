@@ -1,9 +1,9 @@
 import { Hono } from "hono/mod.ts";
-import { AppEnv } from "$/env.ts";
-import Home from "$/ui/home.tsx";
-import SignIn from "$/ui/auth/signin.tsx";
-import SignUp from "$/ui/auth/signup.tsx";
-import ResetPassword from "$/ui/auth/reset-password.tsx";
+import { AppEnv } from "../env.ts";
+import Home from "../ui/home.tsx";
+import SignIn from "../ui/auth/signin.tsx";
+import SignUp from "../ui/auth/signup.tsx";
+import ResetPassword from "../ui/auth/reset-password.tsx";
 
 const app = new Hono<AppEnv>();
 

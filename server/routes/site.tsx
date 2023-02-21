@@ -1,5 +1,5 @@
 import { Hono } from "hono/mod.ts";
-import { AppEnv } from "$/env.ts";
+import { AppEnv } from "../env.ts";
 
 const app = new Hono<AppEnv>();
 app.get("/hello", (c) => c.html("Hello"));

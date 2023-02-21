@@ -1,13 +1,13 @@
 import { html } from "hono/middleware.ts";
-import { JSXChild } from "$/jsx.ts";
+import { JSXChild } from "../../jsx.ts";
 
-export default (props: {
+export default function Document(props: {
   title?: string;
   description?: string;
   headers?: JSXChild;
   footers?: JSXChild;
   children?: JSXChild;
-}) => {
+}) {
   return html`<!DOCTYPE html>${(
     <html lang="en">
       <head>
@@ -25,4 +25,4 @@ export default (props: {
       </body>
     </html>
   )}`;
-};
+}

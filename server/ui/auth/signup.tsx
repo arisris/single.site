@@ -1,7 +1,7 @@
 import AppLayout from "../layouts/app.tsx";
 import Notify from "../components/notification.tsx";
 
-export default () => {
+export default function AuthSignUpPage() {
   const title = "SignUp";
   return (
     <AppLayout title={title}>

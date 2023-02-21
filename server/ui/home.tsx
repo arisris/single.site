@@ -1,6 +1,6 @@
 import AppLayout from "./layouts/app.tsx";
 
-export default () => {
+export default function HomePage() {
   return (
     <AppLayout title="Simple deno blog platform">
       <h3>Hi. User</h3>
@@ -29,4 +29,4 @@ export default () => {
       </div>
     </AppLayout>
   );
-};
+}

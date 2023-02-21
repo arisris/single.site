@@ -1,12 +1,12 @@
-import { JSXChild } from "$/jsx.ts";
+import { JSXChild } from "../../jsx.ts";
 import Document from "./document.tsx";
 
-export default (props: {
+export default function AppLayout(props: {
   title?: string;
   description?: string;
   noscript?: boolean;
   children?: JSXChild;
-}) => {
+}) {
   return (
     <Document
       title={props.title}
@@ -41,4 +41,4 @@ export default (props: {
       </section>
     </Document>
   );
-};
+}

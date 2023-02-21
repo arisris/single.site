@@ -1,7 +1,7 @@
 import AppLayout from "../layouts/app.tsx";
 import Notify from "../components/notification.tsx";
 
-export default () => {
+export default function AuthResetPasswordPage() {
   const title = "Reset Password";
   return (
     <AppLayout title={title}>
@@ -33,4 +33,4 @@ export default () => {
       </form>
     </AppLayout>
   );
-};
+}

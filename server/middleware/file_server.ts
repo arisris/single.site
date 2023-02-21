@@ -20,6 +20,7 @@ export function fileServer(
     const response = await serveFile(c.req as unknown as Request, filePath, {
       etagAlgorithm: "FNV64",
     });
-    return response;
+    c.res = response;
+    return c.res;
   };
 }

@@ -1,7 +1,7 @@
 import AppLayout from "../layouts/app.tsx";
 import Notify from "../components/notification.tsx";
 
-export default () => {
+export default function AuthSignInPage() {
   const error = false;
   const title = "SignIn";
   return (
@@ -55,4 +55,4 @@ export default () => {
       </form>
     </AppLayout>
   );
-};
+}
