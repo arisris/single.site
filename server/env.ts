@@ -5,13 +5,19 @@ import { z } from "zod";
 // deno-lint-ignore no-explicit-any
 type AnyRecord = Record<string, any>;
 
+// environtment variable schema
 export const envSchema = z.object({
+  DATABASE_URL: z.string().url("Invalid DATABASE_URL"),
+  REDIS_URL: z.string().url("Invalid REDIS_URL"),
+  MINIO_URL: z.string().url("Invalid MINIO_URL"),
+  CADDY_ADMIN_URL: z.string().url("Invalid CADDY_ADMIN_URL"),
+  APP_KEY: z.string().min(32),
+  APP_PORT: z.number().min(2).default(3000),
+  APP_DOMAIN: z.string().min(2),
+  APP_DOMAINS: z.string().min(2).transform((i) => i.split(",")),
   DENO_ENV: z.enum(["development", "staging", "production"]).default(
     "development",
   ),
-  DATABASE_URL: z.string().url("Invalid DATABASE_URL"),
-  APP_KEY: z.string().min(32),
-  APP_PORT: z.number().min(2).default(8000),
 }).superRefine((arg, ctx) => {
   if (!arg.DATABASE_URL.startsWith("postgres")) {
     ctx.addIssue({
@@ -37,7 +43,7 @@ export type AppEnv<B = AnyRecord, V = AnyRecord> = {
 export function getValidEnv() {
   const flags = parse(Deno.args, {
     boolean: ["release"],
-    string: ["port", "db", "key"],
+    string: ["port", "key"],
   });
 
   const env = Deno.env.toObject() as AnyRecord;
@@ -45,9 +51,6 @@ export function getValidEnv() {
   // release flags or on deno deploy
   if (flags.release || !!Deno.env.get("DENO_DEPLOYMENT_ID")) {
     env["DENO_ENV"] = "production";
-  }
-  if (flags.db) {
-    env["DATABASE_URL"] = flags.db;
   }
   if (flags.key) {
     env["APP_KEY"] = flags.key;

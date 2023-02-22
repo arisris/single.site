@@ -1,24 +1,20 @@
-export function parseUrlSubdomain(url: string | URL, {
+export function parseUrlSubdomain(hostname: string, {
   domains = [],
   protectedSubdomains = [],
+  minimumCharacter = 4,
 }: {
   domains?: string[];
   protectedSubdomains?: string[];
   minimumCharacter?: number;
 } = {}) {
-  let { hostname: domain, protocol } = new URL(url);
-  const pattern = new RegExp(
-    `^(?!${protectedSubdomains.join("|")})(.+\\.)?(?:${
-      domains.map((h) => h.replace(/\./g, "\\.")).join("|")
-    })$`,
-  );
+  const matched = new URLPattern({ hostname: `*.(${domains.join("|")})` })
+    .exec({ hostname })
+    ?.hostname
+    .groups;
+  if (!matched) return undefined;
+  const subdomain = matched[0], domain = matched[1];
+  if (subdomain.length < minimumCharacter) return undefined;
+  if (protectedSubdomains.some((i) => subdomain.endsWith(i))) return undefined;
 
-  const match = domain.match(pattern);
-  if (!match) return null;
-  protocol = protocol.replace(":", "");
-  return {
-    domain,
-    protocol,
-    subdomain: match[1],
-  };
+  return { domain, subdomain };
 }
